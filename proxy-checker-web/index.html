@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ProxyPulse • High-Speed Proxy Checker</title>
+  <!-- Tailwind CSS & Inter Font -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    code, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+    .glow-purple { box-shadow: 0 0 35px -5px rgba(99, 102, 241, 0.25); }
+  </style>
+</head>
+<body class="bg-[#070b14] text-slate-100 min-h-screen antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Ambient Light Header -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[250px] bg-gradient-to-b from-indigo-600/20 via-purple-600/10 to-transparent blur-[120px] pointer-events-none -z-10"></div>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    
+    <!-- Top Nav / Header -->
+    <header class="flex items-center justify-between mb-8 pb-6 border-b border-slate-800/80">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+          <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ProxyPulse</h1>
+          <p class="text-xs text-slate-500 font-medium">Enterprise Speed & Proxy Inspector</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          Engine Ready
+        </span>
+      </div>
+    </header>
+
+    <!-- Top Card: Inputs & Controls -->
+    <section class="glass rounded-2xl p-5 mb-8 shadow-2xl glow-purple">
+      <div class="relative">
+        <textarea 
+          id="proxyInput" 
+          rows="6" 
+          placeholder="Paste proxies here (one per line)&#10;e.g. host:port:username:password or host:port"
+          class="w-full bg-[#0b1120]/90 text-slate-200 font-mono text-xs sm:text-sm rounded-xl p-4 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition placeholder:text-slate-600 resize-y"
+        ></textarea>
+        <div id="inputCount" class="absolute bottom-3 right-3 text-[11px] font-mono text-slate-500 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">0 loaded</div>
+      </div>
+
+      <!-- Action Row -->
+      <div class="flex flex-wrap items-center justify-between gap-4 mt-4 pt-2">
+        <div class="flex items-center gap-3">
+          <button 
+            id="startBtn"
+            onclick="startChecking()"
+            class="px-6 py-2.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white shadow-lg shadow-indigo-600/30 transition transform active:scale-95 flex items-center gap-2 cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Start Check
+          </button>
+
+          <button 
+            id="stopBtn"
+            onclick="stopChecking()"
+            class="hidden px-5 py-2.5 rounded-xl font-semibold text-sm bg-rose-600 hover:bg-rose-500 text-white transition active:scale-95 cursor-pointer"
+          >
+            Stop
+          </button>
+
+          <button 
+            onclick="clearAll()"
+            class="px-4 py-2.5 rounded-xl font-medium text-xs text-slate-400 hover:text-white hover:bg-slate-800/60 border border-slate-800 transition cursor-pointer"
+          >
+            Clear Input
+          </button>
+        </div>
+
+        <!-- Concurrency Selector -->
+        <div class="flex items-center gap-2.5 text-xs text-slate-400 font-medium">
+          <span>Threads:</span>
+          <select id="concurrencyInput" class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-200 outline-none focus:border-indigo-500">
+            <option value="5">5 Workers</option>
+            <option value="10" selected>10 Workers</option>
+            <option value="20">20 Workers</option>
+            <option value="35">35 Workers</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Live Progress Bar -->
+      <div id="progressContainer" class="hidden mt-4 pt-3 border-t border-slate-800/80">
+        <div class="flex justify-between text-xs text-slate-400 mb-1.5 font-medium">
+          <span id="progressStatus">Checking proxies...</span>
+          <span id="progressPercent" class="font-mono text-indigo-400">0%</span>
+        </div>
+        <div class="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+          <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 w-0 transition-all duration-150"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics Cards Grid -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+      <div class="glass rounded-xl p-3.5 text-center">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-slate-500">Total</span>
+        <div id="statTotal" class="text-xl font-bold font-mono text-slate-200 mt-1">0</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 text-center">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-slate-500">Checked</span>
+        <div id="statChecked" class="text-xl font-bold font-mono text-slate-200 mt-1">0</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 text-center border-emerald-500/20 bg-emerald-500/5">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-emerald-400">Working</span>
+        <div id="statWorking" class="text-xl font-bold font-mono text-emerald-400 mt-1">0</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 text-center border-rose-500/20 bg-rose-500/5">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-rose-400">Failed</span>
+        <div id="statFailed" class="text-xl font-bold font-mono text-rose-400 mt-1">0</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 text-center">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-cyan-400">IPv4</span>
+        <div id="statIpv4" class="text-xl font-bold font-mono text-cyan-400 mt-1">0</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 text-center">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-purple-400">IPv6</span>
+        <div id="statIpv6" class="text-xl font-bold font-mono text-purple-400 mt-1">0</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 text-center border-amber-500/20 bg-amber-500/5">
+        <span class="text-[11px] font-semibold tracking-wider uppercase text-amber-400">Mobile</span>
+        <div id="statMobile" class="text-xl font-bold font-mono text-amber-400 mt-1">0</div>
+      </div>
+    </section>
+
+    <!-- Main Output Panel -->
+    <section class="glass rounded-2xl overflow-hidden shadow-2xl">
+      <!-- Toolbar: Tabs + Batch Actions -->
+      <div class="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-[#0d1424]/80">
+        
+        <!-- Filter Tabs -->
+        <div class="flex items-center gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+          <button onclick="setTab('all')" id="tab-all" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition">All (<span id="tabCountAll">0</span>)</button>
+          <button onclick="setTab('ipv4')" id="tab-ipv4" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">IPv4 (<span id="tabCountIpv4">0</span>)</button>
+          <button onclick="setTab('ipv6')" id="tab-ipv6" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">IPv6 (<span id="tabCountIpv6">0</span>)</button>
+          <button onclick="setTab('mobile')" id="tab-mobile" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">Mobile (<span id="tabCountMobile">0</span>)</button>
+        </div>
+
+        <!-- Copy All Button -->
+        <button 
+          id="copyAllBtn"
+          onclick="copyActiveList()"
+          class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95 shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled
+        >
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2" />
+          </svg>
+          <span id="copyAllLabel">Copy All Active</span>
+        </button>
+      </div>
+
+      <!-- Working Proxy Records Table -->
+      <div id="resultsWrapper" class="max-h-[500px] overflow-y-auto divide-y divide-slate-800/60 font-mono text-xs">
+        <div id="emptyState" class="py-16 text-center text-slate-500 font-sans">
+          <svg class="w-10 h-10 mx-auto text-slate-700 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+          </svg>
+          <p class="font-medium text-sm">No tested proxies yet.</p>
+          <p class="text-xs text-slate-600 mt-0.5 font-mono">Insert list above and click Start Check</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    let rawList = [];
+    let workingProxies = [];
+    let seenIPs = new Set();
+    let isChecking = false;
+    let stopRequested = false;
+    let activeTab = 'all';
+
+    const proxyInput = document.getElementById('proxyInput');
+    const inputCount = document.getElementById('inputCount');
+
+    proxyInput.addEventListener('input', () => {
+      const count = proxyInput.value.split('\n').map(p => p.trim()).filter(Boolean).length;
+      inputCount.innerText = `${count} loaded`;
+    });
+
+    function setTab(tab) {
+      activeTab = tab;
+      ['all', 'ipv4', 'ipv6', 'mobile'].forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white transition";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition";
+        }
+      });
+      renderList();
+    }
+
+    function renderList() {
+      const wrapper = document.getElementById('resultsWrapper');
+      const filtered = workingProxies.filter(item => {
+        if (activeTab === 'ipv4') return item.ipVersion === 'IPv4';
+        if (activeTab === 'ipv6') return item.ipVersion === 'IPv6';
+        if (activeTab === 'mobile') return item.type === 'mobile';
+        return true;
+      });
+
+      document.getElementById('copyAllBtn').disabled = filtered.length === 0;
+
+      if (filtered.length === 0) {
+        wrapper.innerHTML = `
+          <div class="py-16 text-center text-slate-500 font-sans">
+            <p class="font-medium text-sm">No proxies found in this category.</p>
+          </div>
+        `;
+        return;
+      }
+
+      wrapper.innerHTML = filtered.map(item => `
+        <div class="p-3.5 sm:px-5 flex items-center justify-between gap-4 hover:bg-slate-900/40 transition">
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-slate-200 font-medium">${item.proxy}</div>
+            <div class="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400 font-sans">
+              <span class="text-cyan-400 font-mono font-medium">${item.ip}</span>
+              <span class="text-slate-600">•</span>
+              <span class="px-1.5 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-slate-300 font-bold">${item.ipVersion}</span>
+              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${item.type === 'mobile' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-slate-800 text-slate-300'}">${item.type.toUpperCase()}</span>
+              <span class="text-slate-600">•</span>
+              <span class="text-slate-400 truncate max-w-[200px] sm:max-w-xs">${item.isp}</span>
+            </div>
+          </div>
+
+          <!-- Professional Pill Copy Button -->
+          <button 
+            id="btn-${item.id}"
+            onclick="copySingle('${item.proxy}', '${item.id}')"
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 transition flex-shrink-0 cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2" />
+            </svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function copySingle(text, id) {
+      navigator.clipboard.writeText(text);
+      const btn = document.getElementById(`btn-${id}`);
+      if (btn) {
+        btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+        btn.classList.add('bg-emerald-600');
+        btn.innerHTML = `
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>Copied</span>
+        `;
+        setTimeout(() => {
+          btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+          btn.classList.remove('bg-emerald-600');
+          btn.innerHTML = `
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2" />
+            </svg>
+            <span>Copy</span>
+          `;
+        }, 1500);
+      }
+    }
+
+    function copyActiveList() {
+      const filtered = workingProxies.filter(item => {
+        if (activeTab === 'ipv4') return item.ipVersion === 'IPv4';
+        if (activeTab === 'ipv6') return item.ipVersion === 'IPv6';
+        if (activeTab === 'mobile') return item.type === 'mobile';
+        return true;
+      });
+      if (filtered.length === 0) return;
+
+      const payload = filtered.map(i => i.proxy).join('\n');
+      navigator.clipboard.writeText(payload);
+
+      const label = document.getElementById('copyAllLabel');
+      label.innerText = `Copied ${filtered.length}!`;
+      setTimeout(() => label.innerText = 'Copy All Active', 1800);
+    }
+
+    function clearAll() {
+      proxyInput.value = '';
+      inputCount.innerText = '0 loaded';
+    }
+
+    function updateStats(stats) {
+      document.getElementById('statTotal').innerText = stats.total;
+      document.getElementById('statChecked').innerText = stats.checked;
+      document.getElementById('statWorking').innerText = stats.working;
+      document.getElementById('statFailed').innerText = stats.failed;
+      document.getElementById('statIpv4').innerText = stats.ipv4;
+      document.getElementById('statIpv6').innerText = stats.ipv6;
+      document.getElementById('statMobile').innerText = stats.mobile;
+
+      document.getElementById('tabCountAll').innerText = stats.working;
+      document.getElementById('tabCountIpv4').innerText = stats.ipv4;
+      document.getElementById('tabCountIpv6').innerText = stats.ipv6;
+      document.getElementById('tabCountMobile').innerText = stats.mobile;
+
+      const pct = stats.total > 0 ? Math.round((stats.checked / stats.total) * 100) : 0;
+      document.getElementById('progressPercent').innerText = `${pct}%`;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+    }
+
+    async function startChecking() {
+      rawList = proxyInput.value.split('\n').map(p => p.trim()).filter(Boolean);
+      if (rawList.length === 0) {
+        alert("Please enter at least one proxy.");
+        return;
+      }
+
+      isChecking = true;
+      stopRequested = false;
+      workingProxies = [];
+      seenIPs.clear();
+
+      document.getElementById('startBtn').classList.add('hidden');
+      document.getElementById('stopBtn').classList.remove('hidden');
+      document.getElementById('progressContainer').classList.remove('hidden');
+
+      const stats = {
+        total: rawList.length,
+        checked: 0,
+        working: 0,
+        failed: 0,
+        ipv4: 0,
+        ipv6: 0,
+        mobile: 0
+      };
+      updateStats(stats);
+      renderList();
+
+      const concurrency = parseInt(document.getElementById('concurrencyInput').value) || 10;
+      let currentIndex = 0;
+
+      async function worker() {
+        while (currentIndex < rawList.length && !stopRequested) {
+          const proxy = rawList[currentIndex++];
+          try {
+            const res = await fetch('/api/check', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ proxy })
+            });
+            const data = await res.json();
+
+            stats.checked++;
+            if (data.success) {
+              if (!seenIPs.has(data.ip)) {
+                seenIPs.add(data.ip);
+                stats.working++;
+                if (data.ipVersion === 'IPv4') stats.ipv4++;
+                else stats.ipv6++;
+                if (data.type === 'mobile') stats.mobile++;
+
+                workingProxies.push({
+                  id: Math.random().toString(36).substring(2, 9),
+                  proxy: data.proxy,
+                  ip: data.ip,
+                  ipVersion: data.ipVersion,
+                  type: data.type,
+                  isp: data.isp
+                });
+                renderList();
+              }
+            } else {
+              stats.failed++;
+            }
+          } catch (err) {
+            stats.checked++;
+            stats.failed++;
+          }
+          updateStats(stats);
+        }
+      }
+
+      const workers = Array.from({ length: concurrency }, worker);
+      await Promise.all(workers);
+
+      isChecking = false;
+      document.getElementById('startBtn').classList.remove('hidden');
+      document.getElementById('stopBtn').classList.add('hidden');
+      document.getElementById('progressStatus').innerText = stopRequested ? 'Check stopped.' : 'Check complete!';
+    }
+
+    function stopChecking() {
+      stopRequested = true;
+      document.getElementById('stopBtn').innerText = 'Stopping...';
+      setTimeout(() => {
+        document.getElementById('stopBtn').innerText = 'Stop';
+      }, 1000);
+    }
+  </script>
+</body>
+</html>
