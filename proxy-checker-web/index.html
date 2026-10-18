@@ -194,6 +194,7 @@
     let rawList = [];
     let workingProxies = [];
     let seenIPs = new Set();
+    let copiedProxyIds = new Set(); // Tracks copied proxies permanently until refresh
     let isChecking = false;
     let stopRequested = false;
     let activeTab = 'all';
@@ -239,59 +240,57 @@
         return;
       }
 
-      wrapper.innerHTML = filtered.map(item => `
-        <div class="p-3.5 sm:px-5 flex items-center justify-between gap-4 hover:bg-slate-900/40 transition">
-          <div class="min-w-0 flex-1">
-            <div class="truncate text-slate-200 font-medium">${item.proxy}</div>
-            <div class="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400 font-sans">
-              <span class="text-cyan-400 font-mono font-medium">${item.ip}</span>
-              <span class="text-slate-600">•</span>
-              <span class="px-1.5 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-slate-300 font-bold">${item.ipVersion}</span>
-              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${item.type === 'mobile' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-slate-800 text-slate-300'}">${item.type.toUpperCase()}</span>
-              <span class="text-slate-600">•</span>
-              <span class="text-slate-400 truncate max-w-[200px] sm:max-w-xs">${item.isp}</span>
-            </div>
-          </div>
+      wrapper.innerHTML = filtered.map(item => {
+        const isCopied = copiedProxyIds.has(item.id);
 
-          <!-- Professional Pill Copy Button -->
-          <button 
-            id="btn-${item.id}"
-            onclick="copySingle('${item.proxy}', '${item.id}')"
-            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 active:scale-95 transition flex-shrink-0 cursor-pointer"
-          >
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2" />
-            </svg>
-            <span>Copy</span>
-          </button>
-        </div>
-      `).join('');
+        return `
+          <div class="p-3.5 sm:px-5 flex items-center justify-between gap-4 hover:bg-slate-900/40 transition">
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-slate-200 font-medium">${item.proxy}</div>
+              <div class="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-400 font-sans">
+                <span class="text-cyan-400 font-mono font-medium">${item.ip}</span>
+                <span class="text-slate-600">•</span>
+                <span class="px-1.5 py-0.2 rounded bg-slate-800 text-[10px] font-mono text-slate-300 font-bold">${item.ipVersion}</span>
+                <span class="px-1.5 py-0.2 rounded text-[10px] font-bold ${item.type === 'mobile' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-slate-800 text-slate-300'}">${item.type.toUpperCase()}</span>
+                <span class="text-slate-600">•</span>
+                <span class="text-slate-400 truncate max-w-[200px] sm:max-w-xs">${item.isp}</span>
+              </div>
+            </div>
+
+            <!-- Pill Copy Button: Stays 'Copied' permanently once clicked -->
+            <button 
+              id="btn-${item.id}"
+              onclick="copySingle('${item.proxy}', '${item.id}')"
+              class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold ${isCopied ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} shadow-md shadow-indigo-600/20 active:scale-95 transition flex-shrink-0 cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                ${isCopied ? `
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                ` : `
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2" />
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2" />
+                `}
+              </svg>
+              <span>${isCopied ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+        `;
+      }).join('');
     }
 
     function copySingle(text, id) {
       navigator.clipboard.writeText(text);
+      copiedProxyIds.add(id); // Permanently store state for this session
+
       const btn = document.getElementById(`btn-${id}`);
       if (btn) {
-        btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
-        btn.classList.add('bg-emerald-600');
+        btn.className = "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-600 text-white shadow-md shadow-emerald-600/20 active:scale-95 transition flex-shrink-0 cursor-pointer";
         btn.innerHTML = `
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
           </svg>
           <span>Copied</span>
         `;
-        setTimeout(() => {
-          btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
-          btn.classList.remove('bg-emerald-600');
-          btn.innerHTML = `
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2" />
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2" />
-            </svg>
-            <span>Copy</span>
-          `;
-        }, 1500);
       }
     }
 
@@ -307,9 +306,12 @@
       const payload = filtered.map(i => i.proxy).join('\n');
       navigator.clipboard.writeText(payload);
 
+      // Mark all filtered as copied
+      filtered.forEach(item => copiedProxyIds.add(item.id));
+      renderList();
+
       const label = document.getElementById('copyAllLabel');
       label.innerText = `Copied ${filtered.length}!`;
-      setTimeout(() => label.innerText = 'Copy All Active', 1800);
     }
 
     function clearAll() {
@@ -347,6 +349,7 @@
       stopRequested = false;
       workingProxies = [];
       seenIPs.clear();
+      copiedProxyIds.clear(); // Reset copied states on fresh check
 
       document.getElementById('startBtn').classList.add('hidden');
       document.getElementById('stopBtn').classList.remove('hidden');
